@@ -1,9 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 import os
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # 세션에 사용되는 비밀키를 설정합니다.
+
+CORS(app, supports_credentials=True)
 
 # 데이터베이스 설정
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI')
@@ -25,27 +28,26 @@ class User(db.Model):
 with app.app_context():
     db.create_all()
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def main():
-    return "ff"
+    if request.method == 'GET':
+        return "GET요청"
+    return "POST요청"
 
 # 로그인 라우터
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        id = request.form['id']
-        password = request.form['password']
+        try:
+            data = request.get_json()
+            id = data.get('id')
+            password = data.get('password')
+            return f"id는 {id}이며 password는 {password}입니다"
+        except Exception as e:
+            print(e)
 
-        user = User.query.filter_by(
-            id=id, password=password).first()
-
-        if user:
-            session['user_id'] = user.id
-            return redirect(url_for('dashboard'))
-        else:
-            return "True"
-
-    return render_template('login.html')
+    else:
+        return "ㅇㅇㅇ"
 
 # 대시보드 라우터
 
@@ -57,7 +59,7 @@ def dashboard():
         return f'Welcome, {session["username"]}! This is your dashboard.'
     else:
         return redirect(url_for('login'))
-
+    
 # 로그아웃 라우터
 
 
@@ -68,4 +70,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0')

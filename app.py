@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import os
@@ -49,9 +49,26 @@ def login():
     else:
         return "ㅇㅇㅇ"
 
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    id = data.get('id')
+    password = data.get('password')
+
+    # 이미 존재하는 사용자인지 확인
+    user = User.query.filter_by(id=id).first()
+    if user:
+        return jsonify(message='이미 존재하는 사용자입니다.', status=400)
+
+    # 새로운 사용자 추가
+    new_user = User(id=id, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify(message='회원가입 성공!', status=200)
+
+
 # 대시보드 라우터
-
-
 @app.route('/dashboard')
 def dashboard():
     user_id = session.get('user_id')

@@ -1,4 +1,4 @@
-from flask import Flask, request, redirect, url_for, session, jsonify
+from flask import Flask, request, redirect, url_for, session, jsonify, make_response
 from flask_cors import CORS
 from flask_migrate import Migrate
 import os
@@ -17,24 +17,32 @@ migrate = Migrate(app, db)
 # 데이터베이스 초기화 및 테이블 생성
 with app.app_context():
     db.create_all()
+    
+    
+@app.before_request
+def before_request():
+    if request.endpoint not in ['main', 'signin', 'signup', 'dashboard', 'logout']:
+        return redirect(url_for('main'))
 
 @app.route('/', methods=['GET', 'POST'])
 def main():
     if request.method == 'GET':
-        return "GET요청"
-    return "POST요청"
+        return "main에 대한 GET요청"
+    return "main에 대한 POST요청"
 
-# 로그인 라우터
-@app.route('/login', methods=['POST'])
-def login():
+@app.route('/signin', methods=['POST'])
+def signin():
     data = request.get_json()
-    login_id = data.get('loginId')
-    password = data.get('loginPw')
+    login_id = data.get('signinId')
+    password = data.get('signinPw')
     user = User.query.filter_by(login_id=login_id, password=password).first()
     if user:
         session["user_id"] = user.id
-        return jsonify(message='성공', status=200)
-    return jsonify(message='아이디와 패스워드를 확인해주세요', status=400)
+        response = {"result": "성공", "code": "S001"}
+        return make_response(jsonify(response), 200)
+    
+    response = {"result": "아이디와 패스워드를 확인해주세요", "code": "E001"}
+    return make_response(jsonify(response), 400)
 
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -45,14 +53,16 @@ def signup():
     # 이미 존재하는 사용자인지 확인
     user = User.query.filter_by(login_id=login_id).first()
     if user:
-        return jsonify(message='이미 존재하는 사용자입니다.', status=400)
+        response = {"result": "이미 가입된 회원입니다", "code": "E001"}
+        return make_response(jsonify(response), 400)
 
     # 새로운 사용자 추가
     new_user = User(login_id=login_id, password=password)
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify(message='회원가입 성공!', status=200)
+    response = {"result": "성공", "code": "S001"}
+    return make_response(jsonify(response), 200)
 
 
 # 대시보드 라우터

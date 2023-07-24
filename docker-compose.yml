@@ -3,11 +3,12 @@ services:
   app:
     image: pang-app:1.9
     ports:
-      - "5000:5000"
+      - "443:5000"
     depends_on:
       - mariadb
     env_file:
       - .env
+
   mariadb:
     image: mariadb:latest
     container_name: mariadb_db

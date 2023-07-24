@@ -17,6 +17,9 @@ services:
       - .env
     ports:
       - "3307:3306"
+    volumes:
+      - ./my_db:/var/lib/mysql
+      
 
   nginx:
     image: nginx:latest
@@ -25,3 +28,5 @@ services:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app

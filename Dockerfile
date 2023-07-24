@@ -1,6 +1,9 @@
 # Base image
 FROM python:3.8-alpine
 
+RUN apk add --no-cache gcc musl-dev
+RUN apk add --no-cache libffi-dev
+
 # Set the working directory in the container
 WORKDIR /app
 

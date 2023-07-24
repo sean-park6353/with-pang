@@ -2,7 +2,8 @@ from flask import Flask, request, redirect, url_for, session, jsonify, make_resp
 from flask_cors import CORS
 from flask_migrate import Migrate
 from models import db, User
-from werkzeug.security import generate_password_hash
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
 app = Flask(__name__)
@@ -38,12 +39,13 @@ def signin():
     data = request.get_json()
     login_id = data.get('signinId')
     password = data.get('signinPw')
-    user = User.query.filter_by(login_id=login_id, password=password).first()
-    if user:
+    user = User.query.filter_by(login_id=login_id).first()
+
+    if user and check_password_hash(user.password, password):
         session["user_id"] = user.id
         response = {"result": "성공", "code": "S001"}
         return make_response(jsonify(response), 200)
-    
+
     response = {"result": "아이디와 패스워드를 확인해주세요", "code": "E001"}
     return make_response(jsonify(response), 400)
 
@@ -60,7 +62,7 @@ def signup():
         return make_response(jsonify(response), 400)
 
     hashed_password = generate_password_hash(password)
-    new_user = User(login_id=login_id, password=hashed_password)
+    new_user = User(login_id=login_id, password=hashed_password, created_at=datetime.utcnow())
     db.session.add(new_user)
     db.session.commit()
 

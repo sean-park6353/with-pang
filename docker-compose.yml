@@ -3,7 +3,7 @@ services:
   app:
     image: pang-app:1.9
     ports:
-      - "443:5000"
+      - "5000:5000"
     depends_on:
       - mariadb
     env_file:
@@ -17,3 +17,11 @@ services:
       - .env
     ports:
       - "3307:3306"
+
+  nginx:
+    image: nginx:latest
+    container_name: my_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro

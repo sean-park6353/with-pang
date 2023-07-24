@@ -3,7 +3,6 @@ from flask_cors import CORS
 from flask_migrate import Migrate
 from models import db, User
 import os
-import ssl
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # 세션에 사용되는 비밀키를 설정합니다.
@@ -85,4 +84,4 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))
+    app.run( host='0.0.0.0', port=5000)

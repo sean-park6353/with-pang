@@ -11,7 +11,7 @@ import logging
 
 # 로그 설정
 log_formatter = logging.Formatter('[%(asctime)s %(levelname)s] %(name)s - %(message)s')
-file_handler = logging.FileHandler('app.log')
+file_handler = logging.FileHandler('logs/app.log')
 file_handler.setFormatter(log_formatter)
 file_handler.setLevel(logging.DEBUG)
 

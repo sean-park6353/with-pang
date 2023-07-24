@@ -8,6 +8,8 @@ services:
       - mariadb
     env_file:
       - .env
+    volumes:
+      - ./logs:/app/logs
 
   mariadb:
     image: mariadb:latest

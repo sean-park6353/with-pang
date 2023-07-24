@@ -12,5 +12,5 @@ COPY . .
 # Install the required packages
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Run the Flask app
-CMD ["python3", "app.py"]
+# Run the Flask app with Gunicorn
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:app"]

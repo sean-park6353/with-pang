@@ -4,14 +4,18 @@ from flask_migrate import Migrate
 from models import db, User
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+from functools import wraps
 import os
 
+load_dotenv()
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # 세션에 사용되는 비밀키를 설정합니다.
 
 CORS(app, supports_credentials=True)
 
 def required_login(f):
+    @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get("user_id"):
             response = {"result": "로그인이 필요합니다", "code": "E002"}
@@ -82,13 +86,11 @@ def dashboard():
         return redirect(url_for('login'))
     
 # 로그아웃 라우터
-
-
 @app.route('/logout')
+@required_login
 def logout():
     session.clear()
     return redirect(url_for('login'))
-
 
 if __name__ == '__main__':
     app.run( host='0.0.0.0', port=5000)

@@ -61,7 +61,10 @@ def signin():
         session["user_id"] = user.id
         app.logger.info(f"signin 성공: {login_id}")
         response = {"result": "성공", "code": "S001"}
-        return make_response(jsonify(response), 200)
+        result = make_response(jsonify(response), 200)
+        result.set_cookie('user_id', user.id, 3600)
+        return result
+    
     app.logger.warning("signin 실패: 아이디와 패스워드를 확인해주세요")
     response = {"result": "아이디와 패스워드를 확인해주세요", "code": "E001"}
     return make_response(jsonify(response), 400)

@@ -112,7 +112,19 @@ def dashboard():
     user_id = g.current_user_id
     user = User.query.filter_by(id=user_id).first()
     app.logger.info(f'Welcome, {user.login_id}! This is your dashboard.')
-    return f'Welcome, {user.login_id}! This is your dashboard.'
+    data_list = [
+        {
+            "board_id": 1,
+            "title": "게시판 제목",
+            "content": "여기에는 컨텐츠내용이 들어가요~~"
+        },
+        {
+            "board_id": 2,
+            "title": "게시판 제목2222",
+            "content": "여기에는 컨텐츠내용이 들어가요~~222222222"
+        }
+    ]
+    return make_response(jsonify({"result": "성공", "code": "S001", "data": data_list}), 200)
     
 # 로그아웃 라우터
 @app.route('/logout')

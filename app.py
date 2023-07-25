@@ -1,11 +1,12 @@
-from flask import Flask, request, redirect, url_for, session, jsonify, make_response
+from flask import Flask, request, redirect, url_for, session, jsonify, make_response, g
 from flask_cors import CORS
 from flask_migrate import Migrate
 from models import db, User
-from datetime import datetime
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from functools import wraps
+from auth import generate_jwt, verify_jwt
 import os
 import logging
 
@@ -18,15 +19,29 @@ file_handler.setLevel(logging.DEBUG)
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'  # 세션에 사용되는 비밀키를 설정합니다.
+app.config['JWT_SECRET_KEY'] = 'your-jwt-secret-key'  # JWT에 사용되는 비밀키를 설정합니다.
+app.config['JWT_EXPIRATION_DELTA'] = timedelta(hours=1)  # JWT의 만료 시간을 설정합니다.
 
 CORS(app, supports_credentials=True)
 
 def required_login(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get("user_id"):
+        jwt_token = request.headers.get('Authorization')
+
+        if not jwt_token:
             response = {"result": "로그인이 필요합니다", "code": "E002"}
             return make_response(jsonify(response), 401)
+
+        # JWT 검증을 수행합니다.
+        payload = verify_jwt(jwt_token)
+
+        if not payload:
+            response = {"result": "유효하지 않은 토큰입니다", "code": "E002"}
+            return make_response(jsonify(response), 401)
+
+        g.current_user_id = payload["user_id"]
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -58,12 +73,9 @@ def signin():
     user = User.query.filter_by(login_id=login_id).first()
 
     if user and check_password_hash(user.password, password):
-        session["user_id"] = user.id
         app.logger.info(f"signin 성공: {login_id}")
-        response = {"result": "성공", "code": "S001"}
-        res = make_response(jsonify(response), 200)
-        res.set_cookie('user_id', str(user.id), max_age=3600)
-        return res
+        response = {"result": "성공", "code": "S001", "token": generate_jwt(user.id)}
+        return make_response(jsonify(response), 200)
     
     app.logger.warning("signin 실패: 아이디와 패스워드를 확인해주세요")
     response = {"result": "아이디와 패스워드를 확인해주세요", "code": "E001"}
@@ -97,14 +109,10 @@ def signup():
 @app.route('/dashboard')
 @required_login
 def dashboard():
-    user_id = session.get('user_id')
-    if user_id:
-        user = User.query.filter_by(id=user_id).first()
-        app.logger.info(f'Welcome, {user.login_id}! This is your dashboard.')
-        return f'Welcome, {user.login_id}! This is your dashboard.'
-    else:
-        app.logger.error("사용자 세션 정보가 없음")  # 로그 추가
-        return redirect(url_for('login'))
+    user_id = g.current_user_id
+    user = User.query.filter_by(id=user_id).first()
+    app.logger.info(f'Welcome, {user.login_id}! This is your dashboard.')
+    return f'Welcome, {user.login_id}! This is your dashboard.'
     
 # 로그아웃 라우터
 @app.route('/logout')

@@ -60,7 +60,7 @@ def signin():
     if user and check_password_hash(user.password, password):
         session["user_id"] = user.id
         app.logger.info(f"signin 성공: {login_id}")
-        response = {"result": "성공", "code": "S001"}
+        response = {"result": "성공", "code": "S001", "data": {"cookie": session}}
         result = make_response(jsonify(response), 200)
         result.set_cookie('user_id', str(user.id), 3600)
         return result

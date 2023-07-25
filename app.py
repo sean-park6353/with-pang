@@ -62,7 +62,7 @@ def signin():
         app.logger.info(f"signin 성공: {login_id}")
         response = {"result": "성공", "code": "S001"}
         res = make_response(jsonify(response), 200)
-        res.set_cookie('user_id', user.id)
+        res.set_cookie('user_id', str(user.id), max_age=3600)
         return res
     
     app.logger.warning("signin 실패: 아이디와 패스워드를 확인해주세요")

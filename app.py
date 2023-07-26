@@ -124,7 +124,7 @@ def dashboard():
             "content": "여기에는 컨텐츠내용이 들어가요~~222222222"
         }
     ]
-    return make_response(jsonify({"result": "성공", "code": "S001", "data": data_list}), 200)
+    return make_response(jsonify({"result": "성공", "code": "S001", "data_list": data_list}), 200)
     
 # 로그아웃 라우터
 @app.route('/logout')

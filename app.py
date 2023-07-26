@@ -1,4 +1,5 @@
-from flask import Flask, request, redirect, url_for, session, jsonify, make_response, g
+from flask import Flask, request, session, jsonify, make_response, g
+from sqlalchemy import desc
 from flask_cors import CORS
 from flask_migrate import Migrate
 from models import db, User, UserAuth
@@ -137,11 +138,12 @@ def logout():
     data = request.get_json()
     user_id = data.get("userId")
     if user_id:
-        auth = session.query(UserAuth).filter(UserAuth.user_id==user_id).first()
+        auth = session.query(UserAuth).filter(UserAuth.user_id==user_id).order_by(desc(UserAuth.created_at)).first()
         auth.is_valid = False
         session.commit()
         app.logger.info(f"사용자 로그아웃 login_id: {request.headers}, request_data={data}")  # 로그 추가
-    return redirect(url_for('main'))
+        return make_response(jsonify({"result": "성공", "code": "S001"}), 200)
+
 
 if __name__ == '__main__':
     app.run( host='0.0.0.0', port=5000)

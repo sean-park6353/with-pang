@@ -1,7 +1,7 @@
 from flask import Flask, request, redirect, url_for, session, jsonify, make_response, g
 from flask_cors import CORS
 from flask_migrate import Migrate
-from models import db, User
+from models import db, User, UserAuth
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -9,6 +9,8 @@ from functools import wraps
 from auth import generate_jwt, verify_jwt
 import os
 import logging
+# Session 객체 생성
+session = db.session
 
 # 로그 설정
 log_formatter = logging.Formatter('[%(asctime)s %(levelname)s] %(name)s - %(message)s')
@@ -35,8 +37,8 @@ def required_login(f):
 
         # JWT 검증을 수행합니다.
         payload = verify_jwt(jwt_token)
-
-        if not payload:
+        auth = session.query(UserAuth).filter(UserAuth.token==jwt_token).first()
+        if not payload or not auth.is_valid:
             response = {"result": "유효하지 않은 토큰입니다", "code": "E002"}
             return make_response(jsonify(response), 401)
 
@@ -70,11 +72,15 @@ def signin():
     data = request.get_json()
     login_id = data.get('signinId')
     password = data.get('signinPw')
-    user = User.query.filter_by(login_id=login_id).first()
+    user = session.query(User).filter(User.login_id==login_id).first()
 
     if user and check_password_hash(user.password, password):
-        app.logger.info(f"signin 성공: {login_id}")
-        response = {"result": "성공", "code": "S001", "token": generate_jwt(user.id)}
+        app.logger.info(f"signin 성공: {login_id}, request_data={data}")
+        token = generate_jwt(user.id)
+        new_auth = UserAuth(user_id=user.id, token=token, is_valid=True)
+        session.add(new_auth)
+        session.commit()
+        response = {"result": "성공", "code": "S001", "token": token}
         return make_response(jsonify(response), 200)
     
     app.logger.warning("signin 실패: 아이디와 패스워드를 확인해주세요")
@@ -89,9 +95,9 @@ def signup():
     password = data.get('signupPw')
 
     # 이미 존재하는 사용자인지 확인
-    user = User.query.filter_by(login_id=login_id).first()
+    user = session.query(User).filter(User.login_id==login_id).first()
     if user:
-        app.logger.warning(f"signup 실패: 이미 가입된 회원입니다. user_id: {user.id}")
+        app.logger.warning(f"signup 실패: 이미 가입된 회원입니다. user_id: {user.id}, request_data={data}")
         response = {"result": "이미 가입된 회원입니다", "code": "E001"}
         return make_response(jsonify(response), 400)
 
@@ -99,8 +105,7 @@ def signup():
     new_user = User(login_id=login_id, password=hashed_password, created_at=datetime.utcnow())
     db.session.add(new_user)
     db.session.commit()
-
-    app.logger.info(f"signup 성공. login_id: {login_id}, ") 
+    app.logger.info(f"signup 성공. login_id: {login_id}, request_data={data}") 
     response = {"result": "성공", "code": "S001"}
     return make_response(jsonify(response), 200)
 
@@ -110,8 +115,8 @@ def signup():
 @required_login
 def dashboard():
     user_id = g.current_user_id
-    user = User.query.filter_by(id=user_id).first()
-    app.logger.info(f'Welcome, {user.login_id}! This is your dashboard.')
+    user = session.query(User).filter(User.id==user_id).first()
+    app.logger.info(f'Welcome, {user.login_id}! This is your dashboard. ')
     data_list = [
         {
             "board_id": 1,
@@ -127,12 +132,16 @@ def dashboard():
     return make_response(jsonify({"result": "성공", "code": "S001", "data_list": data_list}), 200)
     
 # 로그아웃 라우터
-@app.route('/logout')
-@required_login
+@app.route('/signout', methods=["POST"])
 def logout():
-    app.logger.info("사용자 로그아웃 login_id: {session.get(user_id)}")  # 로그 추가
-    session.clear()
-    return redirect(url_for('login'))
+    data = request.get_json()
+    user_id = data.get("userId")
+    if user_id:
+        auth = session.query(UserAuth).filter(UserAuth.user_id==user_id).first()
+        auth.is_valid = False
+        session.commit()
+        app.logger.info(f"사용자 로그아웃 login_id: {request.headers}, request_data={data}")  # 로그 추가
+    return redirect(url_for('main'))
 
 if __name__ == '__main__':
     app.run( host='0.0.0.0', port=5000)

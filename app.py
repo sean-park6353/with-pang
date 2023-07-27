@@ -38,8 +38,7 @@ def required_login(f):
 
         # JWT 검증을 수행합니다.
         payload = verify_jwt(jwt_token)
-        auth = session.query(UserAuth).filter(UserAuth.token==jwt_token).first()
-        if not payload or not auth.is_valid:
+        if not payload:
             response = {"result": "유효하지 않은 토큰입니다", "code": "E002"}
             return make_response(jsonify(response), 401)
 
@@ -77,11 +76,18 @@ def signin():
 
     if user and check_password_hash(user.password, password):
         app.logger.info(f"signin 성공: {login_id}, request_data={data}")
-        token = generate_jwt(user.id)
-        new_auth = UserAuth(user_id=user.id, token=token, is_valid=True)
+        access, refresh = generate_jwt(user.id, user.email)
+        new_auth = UserAuth(user_id=user.id, token=refresh, is_valid=True)
         session.add(new_auth)
         session.commit()
-        response = {"result": "성공", "code": "S001", "token": token}
+        response = {
+            "result": "성공", 
+            "code": "S001", 
+            "token": {
+                "access_token": access, 
+                "refresh_token": refresh
+            }
+        }
         return make_response(jsonify(response), 200)
     
     app.logger.warning("signin 실패: 아이디와 패스워드를 확인해주세요")
@@ -134,13 +140,11 @@ def dashboard():
 @app.route('/signout', methods=["POST"])
 def logout():
     data = request.get_json()
-    user_id = data.get("userId")
-    if user_id:
-        auth = session.query(UserAuth, User).join(UserAuth, UserAuth.user_id == User.id).filter(User.login_id == user_id).order_by(desc(UserAuth.created_at)).first()[0]
-        auth.is_valid = False
-        session.commit()
-        app.logger.info(f"사용자 로그아웃 login_id: {request.headers}, request_data={data}")  # 로그 추가
-        return make_response(jsonify({"result": "성공", "code": "S001"}), 200)
+    refresh_token = data.get("refresh_token")
+    session.query(UserAuth).filter(UserAuth.token == refresh_token).delete()
+    session.commit()
+    app.logger.info(f"사용자 로그아웃 login_id: {request.headers}, request_data={data}")  # 로그 추가
+    return make_response(jsonify({"result": "성공", "code": "S001"}), 200)
 
 # 글쓰기(Create) API
 @app.route('/board', methods=['POST'])

@@ -7,8 +7,10 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     login_id = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(80))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Add the created_at column with a default value
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 
+    is_active = db.Column(db.Boolean, default=True)
     
     # Board와의 관계 설정
     boards = relationship('Board', back_populates='author')

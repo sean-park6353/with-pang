@@ -116,7 +116,7 @@ def signup():
 @required_login
 def dashboard():
     app.logger.info(f'Welcome, {g.current_user_id}! This is your dashboard. ')
-    boards_with_likes = db.session.query(Board, func.count(LikeBoard.id).label('like_count')).outerjoin(LikeBoard, Board.id == LikeBoard.table_id).group_by(Board).all()
+    boards_with_likes = db.session.query(Board, func.count(LikeBoard.id).label('like_count')).outerjoin(LikeBoard, Board.id == LikeBoard.board_id).group_by(Board).all()
     data_list = []
     for board, like_count in boards_with_likes:
         serialized_board = board.serialize()

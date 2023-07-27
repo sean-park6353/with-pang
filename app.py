@@ -138,7 +138,7 @@ def logout():
     data = request.get_json()
     user_id = data.get("userId")
     if user_id:
-        auth = session.query(UserAuth, User).join(UserAuth.user_id == User.id).filter(User.login_id==user_id).order_by(desc(UserAuth.created_at)).first()
+        auth = session.query(UserAuth, User).join(UserAuth, UserAuth.user_id == User.id).filter(User.login_id == user_id).order_by(desc(UserAuth.created_at)).first()[0]
         auth.is_valid = False
         session.commit()
         app.logger.info(f"사용자 로그아웃 login_id: {request.headers}, request_data={data}")  # 로그 추가

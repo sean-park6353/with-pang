@@ -21,6 +21,7 @@ class Board(db.Model):
     title = db.Column(db.String(80), unique=True, nullable=False)
     content = db.Column(db.String(200), nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    views = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Add the created_at column with a default value
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 
 
@@ -38,6 +39,7 @@ class Board(db.Model):
             'author_id': self.author.login_id,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
+            'views': self.views
         }
 
         

@@ -128,7 +128,7 @@ def dashboard():
         LikeBoard.is_like == True,
         LikeBoard.board_id == Board.id
     ).label('likes')
-    boards_with_likes = db.session.query(Board, like_count_subquery).all()
+    boards_with_likes = db.session.query(Board, like_count_subquery).order_by(Board.created_at.desc()).all()
     data_list = []
     for board, like_count in boards_with_likes:
         serialized_board = board.serialize()
@@ -152,18 +152,19 @@ def create_board():
     data = request.get_json()
     title = data.get('title')
     content = data.get('content')
-
+    author = data.get('author')
+    user = session.query(User).filter(User.login_id == author).first()
     if not title or not content:
         response = {"result": "제목과 내용을 모두 입력해주세요.", "code": "E001"}
         return jsonify(response), 400
 
-    new_board = Board(title=title, content=content)
+    new_board = Board(title=title, content=content, author_id=user.id)
     try:
         # 데이터베이스에 새로운 Board 저장
         db.session.add(new_board)
         db.session.commit()
         response = {"result": "글쓰기가 성공적으로 완료되었습니다.", "code": "S001"}
-        return jsonify(response), 201  # Created
+        return jsonify(response), 200  # Created
     except Exception as e:
         db.session.rollback()
         app.logger.info(e)

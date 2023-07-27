@@ -38,7 +38,7 @@ class Board(db.Model):
             'id': self.id,
             'title': self.title,
             'content': self.content,
-            'author': self.author.login_id,
+            'author_id': self.author.login_id,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'views': self.views

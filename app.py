@@ -30,15 +30,15 @@ CORS(app, supports_credentials=True)
 def required_login(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        jwt_token = request.headers.get('Authorization')
+        token = request.headers.get('Authorization')
 
-        if not jwt_token:
+        if not token:
             response = {"result": "로그인이 필요합니다", "code": "E002"}
             return make_response(jsonify(response), 401)
 
-        # JWT 검증을 수행합니다.
-        payload = verify_jwt(jwt_token)
-        if not payload:
+        auth = session.query(UserAuth).order_by(desc(UserAuth.created_at)).first()
+        payload = verify_jwt(token)
+        if not payload or not auth.is_valid:
             response = {"result": "유효하지 않은 토큰입니다", "code": "E002"}
             return make_response(jsonify(response), 401)
 
@@ -76,17 +76,14 @@ def signin():
 
     if user and check_password_hash(user.password, password):
         app.logger.info(f"signin 성공: {login_id}, request_data={data}")
-        access, refresh = generate_jwt(user.id, user.email)
-        new_auth = UserAuth(user_id=user.id, token=refresh, is_valid=True)
+        token = generate_jwt(user.id)
+        new_auth = UserAuth(user_id=user.id, token=token, is_valid=True)
         session.add(new_auth)
         session.commit()
         response = {
             "result": "성공", 
             "code": "S001", 
-            "token": {
-                "access_token": access, 
-                "refresh_token": refresh
-            }
+            "token": token
         }
         return make_response(jsonify(response), 200)
     
@@ -140,8 +137,9 @@ def dashboard():
 @app.route('/signout', methods=["POST"])
 def logout():
     data = request.get_json()
-    refresh_token = data.get("refresh_token")
-    session.query(UserAuth).filter(UserAuth.token == refresh_token).delete()
+    user_id = data.get("userId")
+    auth = session.query(UserAuth).join(User, UserAuth.user_id == User.id).order_by(UserAuth.created_at.desc()).filter(User.login_id==user_id).all()[0]
+    auth.is_valid = False
     session.commit()
     app.logger.info(f"사용자 로그아웃 login_id: {request.headers}, request_data={data}")  # 로그 추가
     return make_response(jsonify({"result": "성공", "code": "S001"}), 200)

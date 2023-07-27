@@ -1,8 +1,8 @@
 from flask import Flask, request, session, jsonify, make_response, g
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from flask_cors import CORS
 from flask_migrate import Migrate
-from models import db, User, UserAuth
+from models import db, User, UserAuth, Board, LikeBoard
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -115,21 +115,13 @@ def signup():
 @app.route('/dashboard')
 @required_login
 def dashboard():
-    user_id = g.current_user_id
-    user = session.query(User).filter(User.id==user_id).first()
-    app.logger.info(f'Welcome, {user.login_id}! This is your dashboard. ')
-    data_list = [
-        {
-            "board_id": 1,
-            "title": "게시판 제목",
-            "content": "여기에는 컨텐츠내용이 들어가요~~"
-        },
-        {
-            "board_id": 2,
-            "title": "게시판 제목2222",
-            "content": "여기에는 컨텐츠내용이 들어가요~~222222222"
-        }
-    ]
+    app.logger.info(f'Welcome, {g.current_user_id}! This is your dashboard. ')
+    boards_with_likes = db.session.query(Board, func.count(LikeBoard.id).label('like_count')).outerjoin(LikeBoard, Board.id == LikeBoard.table_id).group_by(Board).all()
+    data_list = []
+    for board, like_count in boards_with_likes:
+        serialized_board = board.serialize()
+        serialized_board['like_count'] = like_count
+        data_list.append(serialized_board)
     return make_response(jsonify({"result": "성공", "code": "S001", "data_list": data_list}), 200)
     
 # 로그아웃 라우터
@@ -143,6 +135,59 @@ def logout():
         session.commit()
         app.logger.info(f"사용자 로그아웃 login_id: {request.headers}, request_data={data}")  # 로그 추가
         return make_response(jsonify({"result": "성공", "code": "S001"}), 200)
+
+# 글쓰기(Create) API
+@app.route('/board', methods=['POST'])
+def create_board():
+    data = request.get_json()
+    title = data.get('title')
+    content = data.get('content')
+
+    if not title or not content:
+        response = {"result": "제목과 내용을 모두 입력해주세요.", "code": "E001"}
+        return jsonify(response), 400
+
+    new_board = Board(title=title, content=content)
+    try:
+        # 데이터베이스에 새로운 Board 저장
+        db.session.add(new_board)
+        db.session.commit()
+        response = {"result": "글쓰기가 성공적으로 완료되었습니다.", "code": "S001"}
+        return jsonify(response), 201  # Created
+    except Exception as e:
+        db.session.rollback()
+        app.logger.info(e)
+        response = {"result": "글쓰기에 실패했습니다. 다시 시도해주세요.", "code": "E002"}
+        return jsonify(response), 500
+
+# 좋아요 기능 및 좋아요 취소 기능 토글 엔드포인트
+@app.route('/board/like', methods=['POST'])
+def toggle_like():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    board_id = data.get('board_id')
+
+    # LikeBoard 객체를 가져오기
+    like_board = db.session.query(LikeBoard).filter_by(user_id=user_id, board_id=board_id).first()
+
+    if like_board and like_board.is_like:
+        like_board.is_like = False
+        session.commit()
+        response = {'result': '좋아요 취소', "code": "S001"}
+        
+    elif not like_board:
+        new_like = LikeBoard(user_id=user_id, board_id=board_id, is_like=True)
+        db.session.add(new_like)
+        db.session.commit()
+        response = {'result': '좋아요', "code": "S001"}
+
+    else:
+        like_board.is_like = True
+        db.session.commit()
+        response = {'result': '좋아요', "code": "S001"}
+        
+    return jsonify(response)
+
 
 
 if __name__ == '__main__':

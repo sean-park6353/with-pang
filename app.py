@@ -1,5 +1,5 @@
 from flask import Flask, request, session, jsonify, make_response, g
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, case
 from flask_cors import CORS
 from flask_migrate import Migrate
 from models import db, User, UserAuth, Board, LikeBoard
@@ -116,7 +116,7 @@ def signup():
 @required_login
 def dashboard():
     app.logger.info(f'Welcome, {g.current_user_id}! This is your dashboard. ')
-    boards_with_likes = db.session.query(Board, func.count(LikeBoard.id).label('like_count')).outerjoin(LikeBoard, Board.id == LikeBoard.board_id).group_by(Board).all()
+    boards_with_likes = db.session.query(Board, func.count(case([(LikeBoard.is_like == True, 1)])).label('like_count')).outerjoin(LikeBoard, Board.id == LikeBoard.board_id).group_by(Board).all()
     data_list = []
     for board, like_count in boards_with_likes:
         serialized_board = board.serialize()

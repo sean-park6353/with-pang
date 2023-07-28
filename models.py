@@ -58,8 +58,8 @@ class UserAuth(db.Model):
     
 class LikeBoard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    board_id = db.Column(db.Integer, db.ForeignKey('board.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'))
+    board_id = db.Column(db.Integer, db.ForeignKey('board.id', ondelete='CASCADE'))
     is_like = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 

@@ -169,6 +169,23 @@ def create_board():
         response = {"result": "글쓰기에 실패했습니다. 다시 시도해주세요.", "code": "E002"}
         return jsonify(response), 500
 
+# 글 삭제(Delete) API
+@app.route('/board', methods=['DELETE'])
+def delete_board():
+    data = request.get_json()
+    board_id = data.get("boardId")
+    try:
+        session.query(Board).filter(Board.id==board_id).delete()
+        db.session.commit()
+        response = {"result": "글 삭제가 성공적으로 완료되었습니다.", "code": "S002"}
+        return jsonify(response), 200
+    except Exception as e:
+        db.session.rollback()
+        app.logger.info(e)
+        response = {"result": "글 삭제에 실패했습니다. 다시 시도해주세요.", "code": "E004"}
+        return jsonify(response), 500
+
+
 # 좋아요 기능 및 좋아요 취소 기능 토글 엔드포인트
 @app.route('/board/like', methods=['POST'])
 def toggle_like():

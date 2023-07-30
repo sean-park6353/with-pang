@@ -187,7 +187,7 @@ def delete_board():
 
 
 # 좋아요 기능 및 좋아요 취소 기능 토글 엔드포인트
-@app.route('/board/like', methods=['POST'])
+@app.route('/board/likes', methods=['POST'])
 def toggle_like():
     data = request.get_json()
     user_id = data.get('userId')
@@ -200,18 +200,18 @@ def toggle_like():
     if like_board and like_board.is_like:
         like_board.is_like = False
         session.commit()
-        response = {'result': '좋아요 취소', "code": "S001"}
+        response = {'result': like_board.is_like, "code": "S001"}
         
     elif not like_board:
         new_like = LikeBoard(user_id=user.id, board_id=board_id, is_like=True)
         db.session.add(new_like)
         db.session.commit()
-        response = {'result': '좋아요', "code": "S001"}
+        response = {'result': like_board.is_like, "code": "S001"}
 
     else:
         like_board.is_like = True
         db.session.commit()
-        response = {'result': '좋아요', "code": "S001"}
+        response = {'result': like_board.is_like, "code": "S001"}
         
     return jsonify(response)
 

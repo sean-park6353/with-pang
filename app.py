@@ -203,7 +203,7 @@ def toggle_like():
         response = {'result': '좋아요 취소', "code": "S001"}
         
     elif not like_board:
-        new_like = LikeBoard(user_id=user_id, board_id=board_id, is_like=True)
+        new_like = LikeBoard(user_id=user.id, board_id=board_id, is_like=True)
         db.session.add(new_like)
         db.session.commit()
         response = {'result': '좋아요', "code": "S001"}

@@ -115,7 +115,7 @@ def signup():
 
 
 # 대시보드 라우터
-@app.route('/dashboard')
+@app.route('/board')
 @required_login
 def dashboard():
     app.logger.info(f'Welcome, {g.current_user_id}! This is your dashboard. ')
@@ -190,11 +190,12 @@ def delete_board():
 @app.route('/board/like', methods=['POST'])
 def toggle_like():
     data = request.get_json()
-    user_id = data.get('user_id')
-    board_id = data.get('board_id')
-
+    user_id = data.get('userId')
+    board_id = data.get('boardId')
+    user = session.query(User).filter(User.login_id==user_id).first()
+    
     # LikeBoard 객체를 가져오기
-    like_board = db.session.query(LikeBoard).filter_by(user_id=user_id, board_id=board_id).first()
+    like_board = db.session.query(LikeBoard).filter_by(user_id=user.id, board_id=board_id).first()
 
     if like_board and like_board.is_like:
         like_board.is_like = False

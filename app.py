@@ -235,7 +235,7 @@ def toggle_like():
         new_like = LikeBoard(user_id=user.id, board_id=board_id, is_like=True)
         db.session.add(new_like)
         db.session.commit()
-        response = {'result': like_board.is_like, "code": "S001"}
+        response = {'result': new_like.is_like, "code": "S001"}
 
     else:
         like_board.is_like = True
